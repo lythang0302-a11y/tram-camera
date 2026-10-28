@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TRẠM CAMERA — Dạy máy nhìn · Mắt thần Tin Nhí</title>
+<!-- MẮT THẦN TIN NHÍ · Trạm camera «Dạy máy nhìn» · sản phẩm dự thi của cô Nguyễn Thị Hương Lý, Trường Tiểu học Tri Thủy
+     Máy học k láng giềng gần nhất (k-NN) chạy ngay trong trình duyệt. Ảnh chỉ nằm trong bộ nhớ lúc chạy — không lưu, không gửi đi.
+     ✅ BẢN NHÁP — thầy/cô duyệt trước khi dùng -->
+<style>
+:root{
+  --nen1:#0b1636; --nen2:#13265e; --chinh:#4f8cff; --nhan1:#ffb443; --nhan2:#b07cff;
+  --dung:#2fd27c; --sai:#ff6b6b; --vang:#ffd24d; --xam:#8a97b8;
+  --chu:#f3f6ff; --chu-mo:#b9c5e6; --kinh:rgba(255,255,255,.08); --vien:rgba(255,255,255,.16);
+  --bong:0 10px 30px rgba(0,0,0,.35); --bo:18px;
+  --c-dung:#ff6b6b; --c-di:#2fd27c; --c-re:#4f8cff; --c-khong:#8a97b8;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;color:var(--chu);
+  background:radial-gradient(900px 520px at 12% 8%,rgba(79,140,255,.35),transparent 60%),
+             radial-gradient(800px 520px at 92% 90%,rgba(176,124,255,.30),transparent 60%),
+             linear-gradient(160deg,var(--nen1),var(--nen2));background-attachment:fixed;overflow-x:hidden}
+button{font-family:inherit}
+.dau{display:flex;align-items:center;gap:12px;padding:10px 18px;background:rgba(5,10,30,.45);border-bottom:1px solid var(--vien);flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px}
+.logo b{font-size:20px;letter-spacing:.5px;background:linear-gradient(90deg,#7fb2ff,#ffd27a,#c6a2ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.dau .phu-de{color:var(--chu-mo);font-size:15px;flex:1;min-width:140px}
+.huy{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--kinh);border:1px solid var(--vien);font-size:14px}
+.cham{width:10px;height:10px;border-radius:50%;background:var(--xam)}
+.cham.on{background:var(--dung);box-shadow:0 0 8px var(--dung)} .cham.gia{background:var(--vang)}
+.ban-nhap{font-size:12px;color:var(--chu-mo);text-align:center;padding:4px 10px;background:rgba(255,180,67,.10);border-bottom:1px solid rgba(255,180,67,.25)}
+.nhan-thu{position:fixed;left:50%;top:8px;transform:translateX(-50%);background:#ff9f43;color:#1b1200;font-weight:800;padding:4px 14px;border-radius:999px;z-index:60;font-size:13px;display:none}
+body.mau .nhan-thu{display:block}
+.buoc-thanh{display:flex;gap:10px;padding:14px 18px 0;max-width:1400px;margin:0 auto;flex-wrap:wrap}
+.buoc-the{flex:1;min-width:150px;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:16px;background:var(--kinh);border:1px solid var(--vien);cursor:pointer;color:var(--chu);font-size:15px;text-align:left}
+.buoc-the .so{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:rgba(255,255,255,.12);flex:none}
+.buoc-the.hien{border-color:var(--nhan1);background:rgba(255,180,67,.14)}
+.buoc-the.hien .so{background:linear-gradient(135deg,#ff9f43,#ff6b6b)}
+.chinh{display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:16px;padding:14px 18px 90px;max-width:1400px;margin:0 auto}
+@media (max-width:980px){.chinh{grid-template-columns:1fr}}
+.the{background:var(--kinh);border:1px solid var(--vien);border-radius:var(--bo);box-shadow:var(--bong);padding:16px;min-width:0}
+h2{font-size:22px;margin:.1em 0 .4em} h3{font-size:17px;margin:.6em 0 .4em} .mo{color:var(--chu-mo)} p{margin:.4em 0}
+.nut{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:10px 18px;border:0;border-radius:14px;cursor:pointer;
+  font-size:16px;font-weight:600;color:#fff;background:linear-gradient(135deg,#4f8cff,#7a5cff);box-shadow:0 6px 18px rgba(79,140,255,.35);transition:transform .12s;user-select:none;-webkit-user-select:none;touch-action:none}
+.nut:hover{transform:translateY(-2px)} .nut:active{transform:translateY(1px) scale(.98)}
+.nut.phu{background:transparent;border:1px solid var(--vien);box-shadow:none}
+.nut.cam{background:linear-gradient(135deg,#ff9f43,#ff6b6b)} .nut.xanh{background:linear-gradient(135deg,#25c26e,#1aa6a0)}
+.nut:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.hang{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+/* khung camera */
+.khung-cam{position:relative;width:100%;aspect-ratio:4/3;border-radius:16px;overflow:hidden;background:#050b20;border:2px solid var(--vien)}
+.khung-cam canvas{position:absolute;inset:0;width:100%;height:100%}
+.khung-cam .goc{position:absolute;width:26px;height:26px;border:3px solid var(--nhan1);opacity:.9}
+.goc.a{left:10px;top:10px;border-right:0;border-bottom:0;border-radius:8px 0 0 0}.goc.b{right:10px;top:10px;border-left:0;border-bottom:0;border-radius:0 8px 0 0}
+.goc.c{left:10px;bottom:10px;border-right:0;border-top:0;border-radius:0 0 0 8px}.goc.d{right:10px;bottom:10px;border-left:0;border-top:0;border-radius:0 0 8px 0}
+.khung-cam .nhan-goc{position:absolute;left:12px;bottom:44px;font-size:13px;background:rgba(0,0,0,.55);padding:3px 10px;border-radius:999px}
+.khung-cam .nhan-doan{position:absolute;right:12px;top:12px;font-size:20px;font-weight:800;padding:6px 14px;border-radius:14px;background:rgba(0,0,0,.6);border:2px solid var(--vien)}
+.may-nhin{display:flex;gap:12px;align-items:center;margin-top:12px}
+.may-nhin canvas{width:128px;height:96px;image-rendering:pixelated;border-radius:8px;border:1px solid var(--vien);background:#000}
+.so-chu{font-size:13px;color:var(--chu-mo);line-height:1.45}
+.mau-gia{display:none;margin-top:10px}
+body.gia .mau-gia{display:block}
+.mau-gia button{min-height:40px;padding:6px 12px;border-radius:12px;border:1px solid var(--vien);background:var(--kinh);color:var(--chu);font-size:15px;cursor:pointer}
+.mau-gia button.chon{background:linear-gradient(135deg,#ff9f43,#ff6b6b);border-color:transparent}
+/* các bước */
+.buoc{display:none;animation:hien .3s ease} .buoc.hien{display:block}
+body.chup .buoc{animation:none} body.chup *{transition:none!important;animation:none!important}
+@keyframes hien{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.thong-bao{padding:10px 14px;border-radius:12px;margin:10px 0;font-size:15px;background:rgba(79,140,255,.14);border-left:4px solid var(--chinh)}
+.thong-bao.vang{background:rgba(255,210,77,.12);border-left-color:var(--vang)}
+.thong-bao.xanh{background:rgba(47,210,124,.12);border-left-color:var(--dung)}
+.minh-hoa{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:10px 0}
+.minh-hoa .o{width:120px;text-align:center;padding:10px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid var(--vien)}
+.minh-hoa .o .bt{font-size:40px}
+.nhan-luoi{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media (max-width:640px){.nhan-luoi{grid-template-columns:1fr}}
+.the-nhan{border-radius:16px;padding:12px;background:rgba(255,255,255,.05);border:2px solid var(--vien);border-top:5px solid var(--c)}
+.the-nhan .ten{font-size:18px;font-weight:700}
+.the-nhan .dem{font-size:28px;font-weight:800;color:var(--c)}
+.the-nhan .anh{display:flex;gap:4px;margin:8px 0;min-height:40px;flex-wrap:wrap}
+.the-nhan .anh canvas{width:52px;height:39px;border-radius:6px;border:1px solid var(--vien)}
+.the-nhan.dang-day{box-shadow:0 0 0 3px var(--c),0 0 24px var(--c)}
+.the-nhan .nut{width:100%;background:linear-gradient(135deg,var(--c),rgba(20,30,70,.9))}
+.thanh-dem{height:8px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:6px}
+.thanh-dem i{display:block;height:100%;background:var(--c);width:0}
+.truot{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;padding:8px 12px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid var(--vien);margin:6px 0}
+.truot label{font-size:15px} .truot output{font-weight:800;color:var(--nhan1);min-width:56px;text-align:right}
+.truot input{grid-column:1/3;width:100%;accent-color:var(--nhan1);height:26px}
+.truot small{grid-column:1/3;color:var(--chu-mo);font-size:12.5px}
+.buoc3{display:grid;grid-template-columns:minmax(240px,320px) 1fr;gap:14px}
+@media (max-width:760px){.buoc3{grid-template-columns:1fr}}
+.phieu .dong{display:grid;grid-template-columns:150px 1fr 48px;gap:8px;align-items:center;margin:6px 0;font-size:15px}
+.phieu .ong{height:16px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.phieu .ong i{display:block;height:100%;width:0;background:var(--c);transition:width .15s}
+.doan-lon{font-size:26px;font-weight:800;text-align:center;padding:10px;border-radius:14px;background:rgba(0,0,0,.25);border:2px solid var(--vien);margin:8px 0}
+.san{position:relative;display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(4,1fr);gap:4px;aspect-ratio:6/4;width:100%;padding:6px;border-radius:16px;background:linear-gradient(160deg,#173174,#0f2152);border:2px solid var(--vien)}
+.san .o{border-radius:10px;background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.12)}
+.san .sao{position:absolute;display:grid;place-items:center;font-size:30px;filter:drop-shadow(0 0 8px #ffd24d)}
+.san .robot{position:absolute;display:grid;place-items:center;transition:left .35s,top .35s}
+.san .robot .mui{position:absolute;width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:14px solid var(--nhan1);top:-4px;left:50%;margin-left:-9px;transform-origin:9px 30px}
+.san .robot.cham-tuong{animation:rung .35s}
+@keyframes rung{0%,100%{transform:none}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.lenh{display:flex;gap:6px;flex-wrap:wrap;min-height:34px;margin-top:8px}
+.lenh span{padding:5px 10px;border-radius:9px;font-size:14px;font-weight:700;color:#fff}
+.bang-nham{border-collapse:separate;border-spacing:4px;width:100%;font-size:14px}
+.bang-nham th{font-weight:600;color:var(--chu-mo);padding:4px}
+.bang-nham td{text-align:center;padding:10px 4px;border-radius:10px;font-weight:800;font-size:17px;background:rgba(255,255,255,.05)}
+.kiem-luoi{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:900px){.kiem-luoi{grid-template-columns:1fr}}
+.nut-thu{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.nut-thu .nut{font-size:15px;background:linear-gradient(135deg,var(--c),rgba(20,30,70,.9))}
+.ti-le{font-size:32px;font-weight:900;text-align:center;background:linear-gradient(90deg,#7fe8b4,#ffd27a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.bieu-do{width:100%;height:220px;display:block}
+.bang-luot{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}
+.bang-luot th,.bang-luot td{padding:6px 8px;border-bottom:1px solid var(--vien);text-align:left}
+#tinNhi{position:fixed;right:16px;bottom:12px;z-index:40;display:flex;align-items:flex-end;gap:8px;pointer-events:none}
+#tinNhi .bong-noi{max-width:330px;background:#fff;color:#1d2340;border-radius:16px 16px 4px 16px;padding:10px 14px;font-size:16px;box-shadow:var(--bong);opacity:0;transform:translateY(8px);transition:.25s}
+#tinNhi.noi .bong-noi{opacity:1;transform:none}
+#tinNhi.dung .bong-noi{border:3px solid var(--dung)} #tinNhi.sai .bong-noi{border:3px solid var(--sai)} #tinNhi.goi-y .bong-noi{border:3px solid var(--vang)}
+#tinNhi svg{filter:drop-shadow(0 6px 10px rgba(0,0,0,.4));animation:noi 3s ease-in-out infinite}
+@keyframes noi{50%{transform:translateY(-6px)}}
+.phao{position:fixed;width:10px;height:14px;border-radius:2px;z-index:90;pointer-events:none;animation:roi 1.1s ease-out forwards}
+@keyframes roi{to{transform:translate(var(--dx),var(--dy)) rotate(540deg);opacity:0}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="gRobot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9f1ff"/><stop offset="1" stop-color="#9fb8ef"/></linearGradient>
+    <radialGradient id="gMat" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#bff3ff"/><stop offset=".55" stop-color="#36a3ff"/><stop offset="1" stop-color="#1846b8"/></radialGradient>
+  </defs>
+</svg>
+<div class="nhan-thu">DỮ LIỆU THỬ</div>
+<div class="dau">
+  <div class="logo"><span id="logoHinh"></span><b>MẮT THẦN TIN NHÍ</b></div>
+  <div class="phu-de">📷 Trạm camera · <b>Dạy máy nhìn</b> — máy học từ dữ liệu em đưa</div>
+  <span class="huy"><span class="cham" id="chamCam"></span><span id="chuCam">Camera chưa bật</span></span>
+  <button class="nut phu" id="nutXuat" style="min-height:38px;font-size:14px;padding:6px 12px" title="Tải nhật ký các lượt kiểm tra (CSV)">⬇️ Xuất CSV</button>
+</div>
+<div class="ban-nhap">✅ BẢN NHÁP — thầy/cô duyệt trước khi dùng · Ảnh chỉ nằm trong bộ nhớ lúc chạy — không lưu, không gửi đi · Chỉ hướng camera vào bàn tay</div>
+
+<div class="buoc-thanh" id="buocThanh">
+  <button class="buoc-the" data-b="1"><span class="so">1</span><span>📷 Bật camera</span></button>
+  <button class="buoc-the" data-b="2"><span class="so">2</span><span>🧠 Dạy máy nhìn</span></button>
+  <button class="buoc-the" data-b="3"><span class="so">3</span><span>🎚️ Đổi thông số &amp; thử</span></button>
+  <button class="buoc-the" data-b="4"><span class="so">4</span><span>✅ Kiểm tra máy học</span></button>
+</div>
+
+<div class="chinh">
+  <!-- cột trái: camera -->
+  <div class="the">
+    <h3 style="margin-top:0">👁️ Mắt của máy</h3>
+    <div class="khung-cam">
+      <canvas id="manHinh" width="320" height="240"></canvas>
+      <span class="goc a"></span><span class="goc b"></span><span class="goc c"></span><span class="goc d"></span>
+      <span class="nhan-goc" id="nhanNguon">Chưa có hình</span>
+      <span class="nhan-doan" id="nhanDoan" style="display:none"></span>
+    </div>
+    <div class="may-nhin">
+      <canvas id="anhNho" width="32" height="24"></canvas>
+      <div class="so-chu">Máy chỉ «nhìn» một bức ảnh <b>32 × 24 điểm xám</b> = <b>768 con số</b>.<br>Máy so 768 số này với các mẫu em đã dạy, xem giống mẫu nào nhất.</div>
+    </div>
+    <div class="mau-gia" id="mauGia">
+      <div class="so-chu" style="margin-bottom:6px">🎭 Chế độ không camera — chọn bàn tay giả để trình diễn:</div>
+      <div class="hang" id="nutGia"></div>
+    </div>
+  </div>
+
+  <!-- cột phải: các bước -->
+  <div class="the">
+    <!-- BƯỚC 1 -->
+    <div class="buoc" id="buoc1">
+      <h2>📷 Bước 1 · Bật camera</h2>
+      <p class="mo">Cô hướng camera <b>xuống mặt bàn</b>, chỉ thấy bàn tay — không quay mặt các bạn.</p>
+      <div class="minh-hoa">
+        <div class="o"><div class="bt">✋</div><b style="color:var(--c-dung)">Xoè tay</b><div class="mo">= DỪNG</div></div>
+        <div class="o"><div class="bt">✊</div><b style="color:var(--c-di)">Nắm tay</b><div class="mo">= ĐI</div></div>
+        <div class="o"><div class="bt">☝️</div><b style="color:var(--c-re)">Một ngón</b><div class="mo">= RẼ</div></div>
+        <div class="o"><div class="bt">🙈</div><b style="color:var(--c-khong)">Không có tay</b><div class="mo">= nghỉ</div></div>
+      </div>
+      <div class="hang">
+        <button class="nut cam" id="nutBatCam">📷 Bật camera</button>
+        <button class="nut phu" id="nutTatCam">⏹️ Tắt camera</button>
+        <button class="nut phu" id="nutGiaLap">🎭 Dùng chế độ không camera</button>
+      </div>
+      <div class="thong-bao" id="tbCam">Bấm <b>📷 Bật camera</b>. Chrome hỏi quyền thì cô chọn <b>Cho phép</b>. Không có camera vẫn trình diễn được bằng <b>chế độ không camera</b>.</div>
+      <div class="thong-bao vang">🔒 Ảnh camera chỉ nằm trong bộ nhớ khi trang đang mở. Đóng trang là mất — không lưu, không gửi đi đâu.</div>
+      <div class="hang"><button class="nut xanh" data-sang="2">Tiếp: Dạy máy nhìn ➜</button></div>
+    </div>
+
+    <!-- BƯỚC 2 -->
+    <div class="buoc" id="buoc2">
+      <h2>🧠 Bước 2 · Dạy máy nhìn</h2>
+      <p class="mo">Em giơ cử chỉ trước camera rồi <b>giữ chặt nút</b> của cử chỉ đó (2–3 giây). Mỗi khung hình là một <b>mẫu</b>. Nhớ dạy cả nhãn <b>🙈 Không có tay</b>.</p>
+      <div class="nhan-luoi" id="luoiNhan"></div>
+      <div class="hang" style="margin-top:12px">
+        <button class="nut phu" id="nutXoaMau">🧹 Xoá hết mẫu</button>
+        <button class="nut xanh" data-sang="3">Tiếp: Thử điều khiển ➜</button>
+      </div>
+      <div class="thong-bao vang">💡 Mẹo: khi dạy, em xoay nhẹ tay, đưa gần – xa một chút. Nhiều bạn cùng dạy thì máy nhận ra tay của nhiều bạn.</div>
+    </div>
+
+    <!-- BƯỚC 3 -->
+    <div class="buoc" id="buoc3">
+      <h2>🎚️ Bước 3 · Tự đổi thông số &amp; điều khiển Tin Nhí</h2>
+      <div class="buoc3">
+        <div>
+          <div id="vungTruot"></div>
+        </div>
+        <div>
+          <div class="doan-lon" id="doanLon">Máy đang chờ…</div>
+          <div class="phieu" id="phieu"></div>
+          <div class="san" id="san"></div>
+          <div class="so-chu" style="margin-top:6px">✊ ĐI = tiến 1 ô · ☝️ RẼ = quay phải · ✋ DỪNG = đứng yên. Muốn đi tiếp, em đổi sang ✋ rồi ✊ lại. Phím dự phòng: <b>1</b> ĐI · <b>2</b> RẼ · <b>3</b> DỪNG.</div>
+          <div class="so-chu" style="margin-top:6px"><b>Chương trình em vừa ra lệnh</b> (theo thứ tự):</div>
+          <div class="lenh" id="dsLenh"></div>
+          <div class="hang" style="margin-top:8px"><button class="nut phu" id="nutLaiDuong">🔁 Làm lại đường đi</button><button class="nut xanh" data-sang="4">Tiếp: Kiểm tra máy học ➜</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BƯỚC 4 -->
+    <div class="buoc" id="buoc4">
+      <h2>✅ Bước 4 · Kiểm tra máy học — máy đúng bao nhiêu?</h2>
+      <div class="kiem-luoi">
+        <div>
+          <p class="mo">Mỗi cử chỉ: em giơ tay rồi bấm nút, máy đoán <b>10 lần</b>. Làm đủ 4 nút rồi bấm <b>💾 Lưu lượt kiểm tra</b>.</p>
+          <div class="nut-thu" id="nutThu"></div>
+          <h3>Bảng nhầm lẫn <span class="mo" style="font-size:13px">(hàng = cử chỉ thật · cột = máy đoán)</span></h3>
+          <table class="bang-nham" id="bangNham"></table>
+          <div class="ti-le" id="tiLe">—</div>
+          <div class="hang"><button class="nut cam" id="nutLuuLuot">💾 Lưu lượt kiểm tra</button><button class="nut phu" id="nutXoaThu">↺ Thử lại từ đầu</button></div>
+          <div class="thong-bao xanh">🤝 Dữ liệu ít hoặc chỉ dạy một bạn → máy dễ nhầm. Máy học từ dữ liệu, con người kiểm tra lại.</div>
+        </div>
+        <div>
+          <h3 style="margin-top:0">📊 So sánh các lượt kiểm tra</h3>
+          <canvas class="bieu-do" id="bieuDo" width="560" height="220"></canvas>
+          <table class="bang-luot" id="bangLuot"></table>
+          <div class="so-chu" style="margin-top:8px">Nhật ký chỉ ghi thông số và tỉ lệ đúng — không ảnh, không tên. Bấm <b>⬇️ Xuất CSV</b> để lấy số đo.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tinNhi"><div class="bong-noi" id="tinNhiNoi">Chào em!</div><span id="tinNhiHinh"></span></div>
+<video id="video" playsinline muted style="display:none"></video>
+<canvas id="canNho" width="32" height="24" style="display:none"></canvas>
+
+<script>
+(function(){
+  'use strict';
+  var NHAN = [
+    {id:'dung', bt:'✋', ten:'Xoè tay', lenh:'DỪNG', c:'#ff6b6b'},
+    {id:'di',   bt:'✊', ten:'Nắm tay', lenh:'ĐI',   c:'#2fd27c'},
+    {id:'re',   bt:'☝️', ten:'Một ngón', lenh:'RẼ',  c:'#4f8cff'},
+    {id:'khong',bt:'🙈', ten:'Không có tay', lenh:'nghỉ', c:'#8a97b8'}
+  ];
+  var TIM = {}; NHAN.forEach(function(n){ TIM[n.id]=n; });
+  var KHOA_NK = 'mt-tram-camera-nhat-ky';
+  function $(id){ return document.getElementById(id); }
+  var LS = { lay:function(k,md){ try{ var v=localStorage.getItem(k); return v===null?md:JSON.parse(v); }catch(e){ return md; } },
+             dat:function(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
+
+  /* tham số hash */
+  function docHash(){ var ts={}; (location.hash||'').replace(/^#/,'').split('&').forEach(function(p){ var kv=p.split('='); if(kv[0]) ts[kv[0]]=decodeURIComponent(kv[1]||''); }); return ts; }
+  var TS = docHash();
+  var CHUP = TS.chup==='1', MAU = TS.mau==='1';
+  if(CHUP) document.body.classList.add('chup');
+  if(MAU) document.body.classList.add('mau');
+
+  /* ngẫu nhiên có hạt giống (cho chế độ chụp) */
+  var hat = 12345;
+  function ngau(){ if(!CHUP) return Math.random(); hat|=0; hat=hat+0x6D2B79F5|0; var t=Math.imul(hat^hat>>>15,1|hat); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }
+
+  /* âm thanh, pháo giấy, robot */
+  var ac=null;
+  function am(loai){
+    if(CHUP) return;
+    try{ ac = ac || new (window.AudioContext||window.webkitAudioContext)(); if(ac.state==='suspended') ac.resume();
+      var nots={dung:[660,880],sai:[220,180],bam:[520],xong:[523,659,784,1046]}[loai]||[440];
+      nots.forEach(function(f,i){ var o=ac.createOscillator(), g=ac.createGain(); o.type=loai==='sai'?'triangle':'sine'; o.frequency.value=f;
+        var t0=ac.currentTime+i*0.09; g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(loai==='sai'?0.08:0.12,t0+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t0+0.22);
+        o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0+0.25); });
+    }catch(e){}
+  }
+  function phaoGiay(x,y){
+    if(CHUP) return;
+    var mau=['#ffd24d','#2fd27c','#4f8cff','#ff6b6b','#b07cff','#ff9f43'];
+    for(var i=0;i<26;i++){ var p=document.createElement('div'); p.className='phao'; p.style.left=x+'px'; p.style.top=y+'px'; p.style.background=mau[i%6];
+      p.style.setProperty('--dx',(Math.random()*260-130)+'px'); p.style.setProperty('--dy',(Math.random()*-220+40)+'px');
+      document.body.appendChild(p); setTimeout((function(q){ return function(){ q.remove(); }; })(p),1200); }
+  }
+  function robotSVG(co){ co=co||90;
+    return '<svg width="'+co+'" height="'+Math.round(co*1.15)+'" viewBox="0 0 100 115" aria-hidden="true">'+
+      '<line x1="50" y1="6" x2="50" y2="18" stroke="#9fb8ef" stroke-width="4" stroke-linecap="round"/><circle cx="50" cy="6" r="5" fill="#ffb443"/>'+
+      '<rect x="14" y="18" width="72" height="56" rx="20" fill="url(#gRobot)" stroke="#5d79c9" stroke-width="2"/>'+
+      '<circle cx="50" cy="45" r="19" fill="#0f1d4a"/><circle cx="50" cy="45" r="15" fill="url(#gMat)"/><circle cx="50" cy="45" r="6" fill="#071233"/><circle cx="45" cy="40" r="3.5" fill="#fff"/>'+
+      '<path d="M40 64 Q50 70 60 64" stroke="#5d79c9" stroke-width="3" fill="none" stroke-linecap="round"/>'+
+      '<rect x="6" y="38" width="8" height="18" rx="4" fill="#7f9be0"/><rect x="86" y="38" width="8" height="18" rx="4" fill="#7f9be0"/>'+
+      '<rect x="28" y="76" width="44" height="28" rx="10" fill="url(#gRobot)" stroke="#5d79c9" stroke-width="2"/>'+
+      '<circle cx="40" cy="90" r="4" fill="#2fd27c"/><circle cx="50" cy="90" r="4" fill="#ffd24d"/><circle cx="60" cy="90" r="4" fill="#ff6b6b"/>'+
+      '<rect x="30" y="104" width="12" height="8" rx="3" fill="#7f9be0"/><rect x="58" y="104" width="12" height="8" rx="3" fill="#7f9be0"/></svg>';
+  }
+  var henNoi=null;
+  function noi(chu, kieu){ var r=$('tinNhi'); $('tinNhiNoi').textContent=chu; r.className='noi '+(kieu||''); clearTimeout(henNoi); if(!CHUP) henNoi=setTimeout(function(){ r.className=''; },5500); }
+
+  /* ===== NGUỒN HÌNH: camera thật hoặc bàn tay giả ===== */
+  var manHinh=$('manHinh'), mctx=manHinh.getContext('2d');
+  var canNho=$('canNho'), nctx=canNho.getContext('2d', {willReadFrequently:true});
+  var anhNho=$('anhNho'), actx=anhNho.getContext('2d');
+  var video=$('video'), luong=null, coCam=false, cheDoGia=false, tayGia='di';
+
+  function datTrangThaiCam(){
+    var c=$('chamCam'), t=$('chuCam');
+    c.className='cham'+(coCam?' on':(cheDoGia?' gia':''));
+    t.textContent = coCam?'Camera đang bật':(cheDoGia?'Chế độ không camera':'Camera chưa bật');
+    $('nhanNguon').textContent = coCam?'Camera thật · lật như gương':(cheDoGia?'Bàn tay giả (trình diễn)':'Chưa có hình');
+    document.body.classList.toggle('gia', cheDoGia && !coCam);
+  }
+  function batCam(){
+    var tb=$('tbCam');
+    try{
+      if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ throw new Error('khong-ho-tro'); }
+      tb.className='thong-bao'; tb.textContent='Đang mở camera… Chrome hỏi quyền thì cô chọn «Cho phép».';
+      navigator.mediaDevices.getUserMedia({video:{width:{ideal:320},height:{ideal:240},facingMode:'user'},audio:false}).then(function(s){
+        luong=s; video.srcObject=s; var p=video.play(); if(p && p.catch) p.catch(function(){});
+        coCam=true; cheDoGia=false; datTrangThaiCam();
+        tb.className='thong-bao xanh'; tb.innerHTML='✅ Camera đã bật. Em đưa bàn tay vào khung, rồi sang <b>Bước 2</b>.';
+        noi('Tin Nhí nhìn thấy rồi! Mình dạy máy nhé.','dung'); am('dung');
+      }).catch(function(){ khongCam('Chưa mở được camera (máy chưa có camera hoặc chưa cho phép).'); });
+    }catch(e){ khongCam('Trình duyệt này chưa mở được camera.'); }
+  }
+  function khongCam(ly){
+    coCam=false; cheDoGia=true; datTrangThaiCam();
+    var tb=$('tbCam'); tb.className='thong-bao vang'; tb.innerHTML='ℹ️ '+ly+(/googleusercontent|script\.google/.test(location.href)?' Trang trên Google có thể chặn camera: cô mở file <b>TRAM-CAMERA.html</b> trên máy, hoặc dán link trạm camera khác vào ô «Link trạm camera» trong Cấu hình.':'')+' Đã chuyển sang <b>chế độ không camera</b>: chọn bàn tay giả ở cột trái, hoặc dùng phím 1-2-3.';
+  }
+  function tatCam(){ try{ if(luong) luong.getTracks().forEach(function(t){ t.stop(); }); }catch(e){} luong=null; coCam=false; datTrangThaiCam(); $('tbCam').className='thong-bao'; $('tbCam').textContent='Camera đã tắt.'; }
+
+  /* vẽ bàn tay giả lên canvas 320×240 */
+  function veTayGia(ctx, loai, t){
+    var g=ctx.createLinearGradient(0,0,0,240); g.addColorStop(0,'#c9b38f'); g.addColorStop(1,'#9d8463');
+    ctx.fillStyle=g; ctx.fillRect(0,0,320,240);
+    ctx.strokeStyle='rgba(90,60,30,.25)'; ctx.lineWidth=2; for(var v=0;v<6;v++){ ctx.beginPath(); ctx.moveTo(0,30+v*40+Math.sin(v)*6); ctx.bezierCurveTo(100,20+v*40,220,50+v*40,320,28+v*40); ctx.stroke(); }
+    // một chiếc bút chì trên bàn
+    ctx.save(); ctx.translate(40,200); ctx.rotate(-.25); ctx.fillStyle='#ffcc33'; ctx.fillRect(0,0,70,9); ctx.fillStyle='#e8a0a0'; ctx.fillRect(-10,0,10,9); ctx.fillStyle='#333'; ctx.beginPath(); ctx.moveTo(70,0); ctx.lineTo(82,4.5); ctx.lineTo(70,9); ctx.fill(); ctx.restore();
+    for(var i=0;i<60;i++){ ctx.fillStyle='rgba(0,0,0,'+(ngau()*0.08)+')'; ctx.fillRect(ngau()*320, ngau()*240, 2, 2); }
+    if(loai==='khong') return;
+    var cx=160+Math.sin(t*1.3)*14+(ngau()-.5)*8, cy=150+Math.cos(t*0.9)*10+(ngau()-.5)*8, goc=Math.sin(t*0.7)*0.12+(ngau()-.5)*0.08, co=1+(ngau()-.5)*0.12;
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(goc); ctx.scale(co,co);
+    ctx.fillStyle='#f1c27d'; ctx.strokeStyle='#b07a45'; ctx.lineWidth=3;
+    function ngon(x,y,dai,goc2,rong){ ctx.save(); ctx.translate(x,y); ctx.rotate(goc2); ctx.beginPath();
+      if(ctx.roundRect) ctx.roundRect(-rong/2,-dai,rong,dai+10,rong/2); else ctx.rect(-rong/2,-dai,rong,dai+10);
+      ctx.fill(); ctx.stroke(); ctx.restore(); }
+    // cẳng tay
+    ctx.beginPath(); ctx.moveTo(-26,30); ctx.lineTo(-30,110); ctx.lineTo(30,110); ctx.lineTo(26,30); ctx.closePath(); ctx.fill(); ctx.stroke();
+    if(loai==='dung'){
+      [[-30,-22,62,-0.35],[-12,-34,74,-0.12],[8,-36,78,0.06],[27,-28,66,0.26]].forEach(function(f){ ngon(f[0],f[1],f[2],f[3],18); });
+      ngon(-40,8,44,-1.1,19);
+      ctx.beginPath(); ctx.ellipse(0,0,42,46,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    } else if(loai==='di'){
+      ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(-40,-34,80,74,22); else ctx.rect(-40,-34,80,74); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle='rgba(150,90,40,.7)'; ctx.lineWidth=2; for(var k=0;k<3;k++){ ctx.beginPath(); ctx.moveTo(-20+k*20,-30); ctx.lineTo(-20+k*20,-6); ctx.stroke(); }
+      ctx.strokeStyle='#b07a45'; ctx.lineWidth=3; ngon(-36,12,26,-1.4,18);
+    } else if(loai==='re'){
+      ngon(-6,-30,86,0.02,18);
+      ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(-40,-30,80,70,22); else ctx.rect(-40,-30,80,70); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle='rgba(150,90,40,.7)'; ctx.lineWidth=2; for(var m=0;m<2;m++){ ctx.beginPath(); ctx.moveTo(8+m*16,-26); ctx.lineTo(8+m*16,-4); ctx.stroke(); }
+    }
+    ctx.restore();
+  }
+
+  /* lấy 1 khung → vector 768 số đã chuẩn hoá */
+  var tGia=0;
+  function layKhung(){
+    if(coCam && video.readyState>=2){
+      mctx.save(); mctx.translate(320,0); mctx.scale(-1,1); mctx.drawImage(video,0,0,320,240); mctx.restore();
+    } else if(cheDoGia){ tGia+=0.08; veTayGia(mctx, tayGia, tGia); }
+    else { veManCho(); return null; }
+    nctx.drawImage(manHinh,0,0,32,24);
+    var d=nctx.getImageData(0,0,32,24).data, x=new Float32Array(768), tb=0, i;
+    for(i=0;i<768;i++){ x[i]=0.299*d[i*4]+0.587*d[i*4+1]+0.114*d[i*4+2]; tb+=x[i]; }
+    tb/=768; var ph=0; for(i=0;i<768;i++){ ph+=(x[i]-tb)*(x[i]-tb); } var dl=Math.sqrt(ph/768)+1e-6;
+    for(i=0;i<768;i++) x[i]=(x[i]-tb)/dl;
+    var img=actx.createImageData(32,24); for(i=0;i<768;i++){ var v=Math.max(0,Math.min(255,128+x[i]*50)); img.data[i*4]=img.data[i*4+1]=img.data[i*4+2]=v; img.data[i*4+3]=255; }
+    actx.putImageData(img,0,0);
+    return x;
+  }
+  function veManCho(){
+    var g=mctx.createLinearGradient(0,0,320,240); g.addColorStop(0,'#0d1b48'); g.addColorStop(1,'#1d2f6e'); mctx.fillStyle=g; mctx.fillRect(0,0,320,240);
+    mctx.fillStyle='rgba(255,255,255,.75)'; mctx.font='600 15px Segoe UI, Arial'; mctx.textAlign='center';
+    mctx.fillText('📷 Bấm «Bật camera»', 160, 112); mctx.fillStyle='rgba(185,197,230,.8)'; mctx.font='13px Segoe UI, Arial'; mctx.fillText('hoặc dùng chế độ không camera', 160, 136);
+  }
+
+  /* ===== MẪU DẠY ===== */
+  var mau={}; NHAN.forEach(function(n){ mau[n.id]=[]; });
+  var anhMau={}; NHAN.forEach(function(n){ anhMau[n.id]=[]; });
+  var dangDay='', MAX_MAU=120;
+  function themMau(id, x){
+    if(mau[id].length>=MAX_MAU) mau[id].shift();
+    mau[id].push(x);
+    var c=document.createElement('canvas'); c.width=64; c.height=48; c.getContext('2d').drawImage(manHinh,0,0,64,48);
+    anhMau[id].push(c); if(anhMau[id].length>6) anhMau[id].shift();
+  }
+  function veLuoiNhan(){
+    var l=$('luoiNhan'); l.innerHTML='';
+    NHAN.forEach(function(n){
+      var d=document.createElement('div'); d.className='the-nhan'+(dangDay===n.id?' dang-day':''); d.style.setProperty('--c',n.c); d.id='nhan-'+n.id;
+      d.innerHTML='<div class="hang" style="justify-content:space-between"><span class="ten">'+n.bt+' '+n.ten+' = '+n.lenh+'</span><span class="dem">'+mau[n.id].length+'</span></div>'+
+        '<div class="thanh-dem"><i style="width:'+Math.min(100,mau[n.id].length/60*100)+'%"></i></div><div class="anh"></div>';
+      var hop=d.querySelector('.anh');
+      if(!anhMau[n.id].length) hop.innerHTML='<span class="so-chu">Chưa có mẫu nào</span>';
+      anhMau[n.id].forEach(function(c){ var k=document.createElement('canvas'); k.width=64; k.height=48; k.getContext('2d').drawImage(c,0,0); hop.appendChild(k); });
+      var b=document.createElement('button'); b.className='nut'; b.textContent='✋ Giữ để dạy «'+n.lenh+'»';
+      function bat(e){ if(e) e.preventDefault(); if(!coCam && !cheDoGia){ noi('Cô bật camera (hoặc chế độ không camera) ở Bước 1 trước nhé.','goi-y'); return; } dangDay=n.id; if(cheDoGia && n.id!==tayGia){ chonTayGia(n.id); } am('bam'); capNhatDem(); }
+      function tha(){ if(dangDay===n.id){ dangDay=''; veLuoiNhan(); } }
+      b.addEventListener('pointerdown', bat); b.addEventListener('pointerup', tha); b.addEventListener('pointerleave', tha); b.addEventListener('pointercancel', tha);
+      b.addEventListener('click', function(){ if(!dangDay) { var x=layKhung(); if(x){ themMau(n.id,x); veLuoiNhan(); } } });
+      d.appendChild(b); l.appendChild(d);
+    });
+  }
+  function capNhatDem(){
+    NHAN.forEach(function(n){ var d=$('nhan-'+n.id); if(!d) return; d.classList.toggle('dang-day', dangDay===n.id);
+      d.querySelector('.dem').textContent=mau[n.id].length; d.querySelector('.thanh-dem i').style.width=Math.min(100,mau[n.id].length/60*100)+'%'; });
+  }
+  function tongMau(){ var s=0; NHAN.forEach(function(n){ s+=mau[n.id].length; }); return s; }
+
+  /* ===== THÔNG SỐ ===== */
+  var TSO = {k:5, soMau:30, nguong:60, lienTiep:3};
+  function thanhTruot(cha, ten, nhan, min, max, gt, donVi, giai, khi){
+    var w=document.createElement('div'); w.className='truot'; var id='tr-'+ten;
+    w.innerHTML='<label for="'+id+'">🎚️ '+nhan+'</label><output></output><input type="range" id="'+id+'" min="'+min+'" max="'+max+'" value="'+gt+'"><small>'+giai+'</small>';
+    var inp=w.querySelector('input'), out=w.querySelector('output');
+    function hien(){ out.textContent=inp.value+(donVi||''); }
+    inp.oninput=function(){ hien(); khi(+inp.value); }; hien(); cha.appendChild(w);
+    return function(v){ inp.value=v; hien(); };
+  }
+  var datTruot={};
+  function dungTruot(){
+    var v=$('vungTruot'); v.innerHTML='<h3 style="margin-top:0">Em tự đổi thông số</h3>';
+    datTruot.k=thanhTruot(v,'k','k — số «hàng xóm» máy hỏi ý',1,9,TSO.k,'','k nhỏ: đoán nhanh nhưng dễ nhầm · k lớn: chắc hơn nhưng cần nhiều mẫu',function(x){ TSO.k=x; });
+    datTruot.soMau=thanhTruot(v,'soMau','Số mẫu mỗi nhãn được dùng',5,60,TSO.soMau,'','Ít mẫu → máy học ít → dễ nhầm. Em thử 5 rồi 40 xem khác không',function(x){ TSO.soMau=x; });
+    datTruot.nguong=thanhTruot(v,'nguong','Ngưỡng tin',40,90,TSO.nguong,'%','Máy chỉ ra lệnh khi đủ chắc chắn',function(x){ TSO.nguong=x; });
+    datTruot.lienTiep=thanhTruot(v,'lienTiep','Số lần đoán liên tiếp giống nhau',1,5,TSO.lienTiep,' lần','Cao hơn → robot ít «giật» nhưng phản ứng chậm hơn',function(x){ TSO.lienTiep=x; });
+  }
+
+  /* ===== k-NN ===== */
+  function doan(x){
+    var ds=[];
+    NHAN.forEach(function(n){ var m=mau[n.id], bd=Math.max(0,m.length-TSO.soMau);
+      for(var j=bd;j<m.length;j++){ var s=0, a=m[j]; for(var i=0;i<768;i++){ var d=a[i]-x[i]; s+=d*d; } ds.push({d:s,nhan:n.id}); } });
+    if(!ds.length) return null;
+    ds.sort(function(a,b){ return a.d-b.d; });
+    var top=ds.slice(0,Math.min(TSO.k,ds.length)), phieu={}; NHAN.forEach(function(n){ phieu[n.id]=0; });
+    top.forEach(function(t){ phieu[t.nhan]++; });
+    var best='', so=-1; NHAN.forEach(function(n){ if(phieu[n.id]>so){ so=phieu[n.id]; best=n.id; } });
+    return {nhan:best, doTin:so/top.length, phieu:phieu, k:top.length};
+  }
+
+  /* ===== hiển thị phiếu ===== */
+  function dungPhieu(){ var p=$('phieu'); p.innerHTML='';
+    NHAN.forEach(function(n){ var d=document.createElement('div'); d.className='dong'; d.style.setProperty('--c',n.c);
+      d.innerHTML='<span>'+n.bt+' '+n.lenh+'</span><span class="ong"><i id="ong-'+n.id+'"></i></span><b id="pt-'+n.id+'">0%</b>'; p.appendChild(d); }); }
+  function hienPhieu(kq, chacChan){
+    NHAN.forEach(function(n){ var v=kq? kq.phieu[n.id]/kq.k : 0; var o=$('ong-'+n.id); if(o){ o.style.width=Math.round(v*100)+'%'; $('pt-'+n.id).textContent=Math.round(v*100)+'%'; } });
+    var dl=$('doanLon'), nd=$('nhanDoan');
+    if(!kq){ dl.textContent = tongMau()? 'Máy đang chờ hình…' : 'Chưa có mẫu — em dạy máy ở Bước 2 nhé'; dl.style.borderColor=''; nd.style.display='none'; return; }
+    var n=TIM[kq.nhan], pt=Math.round(kq.doTin*100);
+    if(kq.doTin*100 < TSO.nguong){ dl.innerHTML='🤔 Máy chưa chắc… <span class="mo" style="font-size:16px">('+n.bt+' '+n.lenh+' '+pt+'% &lt; ngưỡng '+TSO.nguong+'%)</span>'; dl.style.borderColor='var(--vang)'; }
+    else { dl.innerHTML='Máy đoán: '+n.bt+' <span style="color:'+n.c+'">'+n.lenh+'</span> · '+pt+'%'+(chacChan?' ✔':''); dl.style.borderColor=n.c; }
+    nd.style.display='block'; nd.textContent=n.bt+' '+n.lenh+' '+pt+'%'; nd.style.borderColor=n.c;
+  }
+
+  /* ===== SÂN ROBOT 6×4 ===== */
+  var RB={x:0,y:3,huong:0}, SAO={x:5,y:0}, lenhDa=[], HUONG=[[0,-1],[1,0],[0,1],[-1,0]]; // 0 lên, 1 phải, 2 xuống, 3 trái
+  function dungSan(){
+    var s=$('san'); s.innerHTML='';
+    for(var i=0;i<24;i++){ var o=document.createElement('div'); o.className='o'; s.appendChild(o); }
+    var sao=document.createElement('div'); sao.className='sao'; sao.id='sao'; sao.textContent='⭐'; s.appendChild(sao);
+    var r=document.createElement('div'); r.className='robot'; r.id='robot'; r.innerHTML=robotSVG(46)+'<span class="mui" id="mui"></span>'; s.appendChild(r);
+    veSan();
+  }
+  function veSan(){
+    var s=$('san'); if(!s) return; var w=(s.clientWidth-12)/6, h=(s.clientHeight-12)/4;
+    var sao=$('sao'), r=$('robot'); if(!r) return;
+    sao.style.left=(6+SAO.x*w)+'px'; sao.style.top=(6+SAO.y*h)+'px'; sao.style.width=w+'px'; sao.style.height=h+'px';
+    r.style.left=(6+RB.x*w)+'px'; r.style.top=(6+RB.y*h)+'px'; r.style.width=w+'px'; r.style.height=h+'px';
+    var mui=$('mui'); var goc=RB.huong*90, rr=Math.min(w,h)/2;
+    mui.style.transform='rotate('+goc+'deg)'; mui.style.top=(h/2-rr-2)+'px'; mui.style.transformOrigin='9px '+(rr+2)+'px';
+    var dsl=$('dsLenh'); dsl.innerHTML = lenhDa.length? '' : '<span class="so-chu" style="padding:0">Chưa có lệnh nào</span>';
+    lenhDa.slice(-14).forEach(function(l){ var sp=document.createElement('span'); sp.textContent=TIM[l].bt+' '+TIM[l].lenh; sp.style.background=TIM[l].c; dsl.appendChild(sp); });
+  }
+  function raLenh(id){
+    if(id==='khong') return;
+    lenhDa.push(id);
+    if(id==='di'){ var nx=RB.x+HUONG[RB.huong][0], ny=RB.y+HUONG[RB.huong][1];
+      if(nx<0||nx>5||ny<0||ny>3){ var r=$('robot'); r.classList.remove('cham-tuong'); void r.offsetWidth; r.classList.add('cham-tuong'); am('sai'); noi('Ôi, chạm tường rồi! Em ra lệnh RẼ để đổi hướng nhé.','sai'); }
+      else { RB.x=nx; RB.y=ny; am('bam'); } }
+    else if(id==='re'){ RB.huong=(RB.huong+1)%4; am('bam'); }
+    else if(id==='dung'){ noi('Tin Nhí đứng yên chờ lệnh.',''); }
+    veSan();
+    if(RB.x===SAO.x && RB.y===SAO.y){ am('xong'); var b=$('sao').getBoundingClientRect(); phaoGiay(b.left+b.width/2,b.top+b.height/2); noi('Tuyệt vời! Tin Nhí tới ngôi sao sau '+lenhDa.length+' lệnh!','dung'); }
+  }
+  function laiDuong(){ RB={x:0,y:3,huong:0}; lenhDa=[]; veSan(); }
+
+  /* ===== KIỂM TRA ===== */
+  var nham={}, dangThu='', conThu=0;
+  function xoaThu(){ nham={}; NHAN.forEach(function(a){ nham[a.id]={}; NHAN.forEach(function(b){ nham[a.id][b.id]=0; }); }); veNham(); }
+  function dungNutThu(){ var h=$('nutThu'); h.innerHTML='';
+    NHAN.forEach(function(n){ var b=document.createElement('button'); b.className='nut'; b.style.setProperty('--c',n.c); b.id='thu-'+n.id;
+      b.onclick=function(){ if(!tongMau()){ noi('Máy chưa học gì cả — em dạy ở Bước 2 trước nhé.','goi-y'); return; } if(!coCam && !cheDoGia){ noi('Cô bật camera ở Bước 1 trước nhé.','goi-y'); return; }
+        if(dangThu) return; NHAN.forEach(function(m){ nham[n.id][m.id]=0; }); dangThu=n.id; conThu=10; if(cheDoGia) chonTayGia(n.id); am('bam'); noi('Em giơ '+n.bt+' '+n.ten+' nhé, máy đoán 10 lần…','goi-y'); veNham(); };
+      h.appendChild(b); });
+    veNham(); }
+  function veNham(){
+    var t=$('bangNham'); var html='<tr><th></th>'+NHAN.map(function(n){ return '<th>'+n.bt+'<br>'+n.lenh+'</th>'; }).join('')+'</tr>';
+    var dung=0, tong=0;
+    NHAN.forEach(function(a){ var hang=0; NHAN.forEach(function(b){ hang+=nham[a.id][b.id]; });
+      html+='<tr><th>'+a.bt+' '+a.lenh+'</th>';
+      NHAN.forEach(function(b){ var v=nham[a.id][b.id], ti=hang? v/hang:0, nen;
+        if(a.id===b.id) nen='rgba(47,210,124,'+(0.12+ti*0.7)+')'; else nen= v? 'rgba(255,107,107,'+(0.15+ti*0.7)+')':'rgba(255,255,255,.05)';
+        html+='<td style="background:'+nen+'">'+(hang? v:'·')+'</td>'; });
+      html+='</tr>'; dung+=nham[a.id][a.id]; tong+=hang; });
+    t.innerHTML=html;
+    $('tiLe').textContent = tong? ('Máy đúng '+Math.round(dung/tong*100)+'% · '+dung+'/'+tong+' lần') : '—';
+    NHAN.forEach(function(n){ var b=$('thu-'+n.id); if(!b) return; var h=0; NHAN.forEach(function(m){ h+=nham[n.id][m.id]; });
+      b.textContent=(dangThu===n.id? '⏳ ':'▶️ ')+'Thử '+n.bt+' '+n.lenh+' ('+(dangThu===n.id? (10-conThu):h)+'/10)'; });
+    $('nutLuuLuot').disabled = !tong || !!dangThu;
+  }
+  function luuLuot(){
+    var dung=0,tong=0; NHAN.forEach(function(a){ NHAN.forEach(function(b){ tong+=nham[a.id][b.id]; if(a.id===b.id) dung+=nham[a.id][b.id]; }); });
+    if(!tong) return;
+    var nk=LS.lay(KHOA_NK,[]);
+    var ban={t:Date.now(), k:TSO.k, soMau:TSO.soMau, nguong:TSO.nguong, lienTiep:TSO.lienTiep, soLanThu:tong, tiLe:Math.round(dung/tong*100)};
+    NHAN.forEach(function(n){ ban['mau_'+n.id]=Math.min(mau[n.id].length, TSO.soMau); });
+    nk.push(ban); if(nk.length>200) nk=nk.slice(-200); LS.dat(KHOA_NK,nk);
+    am('xong'); var r=$('tiLe').getBoundingClientRect(); phaoGiay(r.left+r.width/2, r.top);
+    noi('Đã lưu lượt kiểm tra: máy đúng '+ban.tiLe+'%. Em thử thêm mẫu xem có tăng không!','dung');
+    veLuot();
+  }
+  var LUOT_MAU=null;
+  function dsLuot(){ return LUOT_MAU || LS.lay(KHOA_NK,[]); }
+  function veLuot(){
+    var ds=dsLuot(), bt=$('bangLuot');
+    bt.innerHTML='<tr><th>Lượt</th><th>Mẫu/nhãn</th><th>k</th><th>Ngưỡng</th><th>Số lần thử</th><th>Đúng</th></tr>'+
+      (ds.length? ds.slice(-6).map(function(l,i,a){ var stt=ds.length-a.length+i+1; return '<tr><td>'+stt+'</td><td>'+l.soMau+'</td><td>'+l.k+'</td><td>'+l.nguong+'%</td><td>'+l.soLanThu+'</td><td><b>'+l.tiLe+'%</b></td></tr>'; }).join('')
+        : '<tr><td colspan="6" class="mo">Chưa có lượt nào. Làm xong bảng nhầm lẫn rồi bấm «💾 Lưu lượt kiểm tra».</td></tr>');
+    var cv=$('bieuDo'), c=cv.getContext('2d'), W=cv.width, H=cv.height; c.clearRect(0,0,W,H);
+    c.strokeStyle='rgba(255,255,255,.15)'; c.fillStyle='rgba(185,197,230,.85)'; c.font='12px Segoe UI, Arial'; c.textAlign='right';
+    for(var p=0;p<=100;p+=25){ var y=H-30-(H-50)*p/100; c.beginPath(); c.moveTo(40,y); c.lineTo(W-8,y); c.stroke(); c.fillText(p+'%',34,y+4); }
+    var lay=ds.slice(-8); if(!lay.length){ c.textAlign='center'; c.fillStyle='rgba(185,197,230,.7)'; c.font='15px Segoe UI, Arial'; c.fillText('Biểu đồ hiện khi có lượt kiểm tra',W/2,H/2); return; }
+    var bw=Math.min(70,(W-60)/lay.length-14);
+    lay.forEach(function(l,i){ var x=48+i*((W-60)/lay.length)+((W-60)/lay.length-bw)/2, h=(H-50)*l.tiLe/100, y=H-30-h;
+      var g=c.createLinearGradient(0,y,0,H-30); g.addColorStop(0, l.tiLe>=80?'#7fe8b4':(l.tiLe>=60?'#ffd27a':'#ff8a8a')); g.addColorStop(1,'rgba(79,140,255,.6)');
+      c.fillStyle=g; c.beginPath(); if(c.roundRect) c.roundRect(x,y,bw,h,8); else c.rect(x,y,bw,h); c.fill();
+      c.fillStyle='#fff'; c.textAlign='center'; c.font='bold 14px Segoe UI, Arial'; c.fillText(l.tiLe+'%', x+bw/2, y-6);
+      c.fillStyle='rgba(185,197,230,.95)'; c.font='12px Segoe UI, Arial'; c.fillText(l.soMau+' mẫu · k='+l.k, x+bw/2, H-12); });
+  }
+  function xuatCSV(){
+    var ds=LS.lay(KHOA_NK,[]);
+    var cot=['thoi_gian','k','so_mau_dung_moi_nhan','nguong_tin','so_lan_lien_tiep','mau_dung','mau_di','mau_re','mau_khong','so_lan_thu','ti_le_dung_phan_tram'];
+    var dong=[cot.join(',')].concat(ds.map(function(l){ return ['"'+new Date(l.t).toLocaleString('vi-VN')+'"',l.k,l.soMau,l.nguong,l.lienTiep,l.mau_dung,l.mau_di,l.mau_re,l.mau_khong,l.soLanThu,l.tiLe].join(','); }));
+    try{ var b=new Blob(['﻿'+dong.join('\n')],{type:'text/csv;charset=utf-8'}); var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='tram-camera-nhat-ky-kiem-tra.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); }catch(e){}
+    noi(ds.length? 'Đã xuất '+ds.length+' lượt kiểm tra ra file CSV.' : 'Chưa có lượt kiểm tra nào — file CSV chỉ có dòng tiêu đề.','goi-y');
+  }
+
+  /* ===== tay giả ===== */
+  function dungNutGia(){ var h=$('nutGia'); h.innerHTML='';
+    NHAN.forEach(function(n){ var b=document.createElement('button'); b.textContent=n.bt+' '+n.ten; b.id='gia-'+n.id; b.className=tayGia===n.id?'chon':'';
+      b.onclick=function(){ chonTayGia(n.id); }; h.appendChild(b); }); }
+  function chonTayGia(id){ tayGia=id; NHAN.forEach(function(n){ var b=$('gia-'+n.id); if(b) b.className=n.id===id?'chon':''; }); }
+
+  /* ===== vòng lặp chính ===== */
+  var buocHien=1, lichSu=[], onDinh='', tCuoi=0;
+  function vong(t){
+    requestAnimationFrame(vong);
+    if(t-tCuoi<100) return; tCuoi=t;
+    var x=layKhung(); if(!x){ if(buocHien===3) hienPhieu(null); return; }
+    if(dangDay){ themMau(dangDay,x); capNhatDem(); return; }
+    if(dangThu){ var kq0=doan(x); if(kq0){ nham[dangThu][kq0.nhan]++; conThu--; }
+      if(conThu<=0 || !kq0){ var n=TIM[dangThu]; dangThu=''; am('dung'); noi('Xong 10 lần với '+n.bt+' '+n.lenh+'!','dung'); } veNham(); return; }
+    if(buocHien!==3) return;
+    var kq=doan(x);
+    if(!kq){ hienPhieu(null); return; }
+    var nhan = kq.doTin*100>=TSO.nguong ? kq.nhan : '';
+    lichSu.push(nhan); if(lichSu.length>8) lichSu.shift();
+    var on=false; if(nhan && lichSu.length>=TSO.lienTiep){ on=true; for(var i=lichSu.length-TSO.lienTiep;i<lichSu.length;i++) if(lichSu[i]!==nhan){ on=false; break; } }
+    hienPhieu(kq, on);
+    if(on && nhan!==onDinh){ onDinh=nhan; raLenh(nhan); }
+    else if(!nhan && lichSu.slice(-TSO.lienTiep).every(function(v){ return v===''; })) onDinh='';
+  }
+
+  /* ===== chuyển bước ===== */
+  function denBuoc(b){
+    buocHien=b;
+    Array.prototype.forEach.call(document.querySelectorAll('.buoc'), function(el){ el.classList.toggle('hien', el.id==='buoc'+b); });
+    Array.prototype.forEach.call(document.querySelectorAll('.buoc-the'), function(el){ el.classList.toggle('hien', +el.getAttribute('data-b')===b); });
+    if(b===2) veLuoiNhan();
+    if(b===3){ veSan(); lichSu=[]; onDinh=''; }
+    if(b===4){ veNham(); veLuot(); }
+    var loi={1:'Bước 1: cô bật camera, hướng xuống bàn tay nhé.',2:'Giữ nút để Tin Nhí học cử chỉ của em!',3:'Em đổi thông số rồi điều khiển Tin Nhí tới ngôi sao ⭐',4:'Cùng kiểm tra xem máy học đúng bao nhiêu nhé!'}[b];
+    if(!CHUP) noi(loi,'');
+  }
+  function datHash(b){ var h='buoc='+b; if(CHUP) h+='&chup=1'; if(MAU) h+='&mau=1'; if(location.hash.replace('#','')!==h) location.hash=h; else denBuoc(b); }
+  window.addEventListener('hashchange', function(){ TS=docHash(); denBuoc(Math.max(1,Math.min(4,+TS.buoc||1))); });
+  window.addEventListener('resize', veSan);
+  document.addEventListener('keydown', function(e){
+    if(e.target && e.target.tagName==='INPUT') return;
+    var m={'1':'di','2':'re','3':'dung'}[e.key]; if(!m) return;
+    if(buocHien===3){ raLenh(m); if(cheDoGia) chonTayGia(m); }
+    else if(cheDoGia) chonTayGia(m);
+  });
+
+  /* ===== dữ liệu thử cho chế độ chụp ===== */
+  function napMauThu(){
+    cheDoGia=true;
+    NHAN.forEach(function(n,i){ var soMau=[34,38,30,26][i]; for(var j=0;j<soMau;j++){ tGia+=0.37; veTayGia(mctx,n.id,tGia); var x=layKhung0(); themMau(n.id,x); } });
+    tayGia='di';
+  }
+  function layKhung0(){ nctx.drawImage(manHinh,0,0,32,24); var d=nctx.getImageData(0,0,32,24).data, x=new Float32Array(768), tb=0, i;
+    for(i=0;i<768;i++){ x[i]=0.299*d[i*4]+0.587*d[i*4+1]+0.114*d[i*4+2]; tb+=x[i]; } tb/=768; var ph=0; for(i=0;i<768;i++) ph+=(x[i]-tb)*(x[i]-tb); var dl=Math.sqrt(ph/768)+1e-6;
+    for(i=0;i<768;i++) x[i]=(x[i]-tb)/dl; return x; }
+  function dungChup(b){
+    napMauThu(); datTrangThaiCam(); chonTayGia('di');
+    tGia=2.1; veTayGia(mctx,'di',tGia); layKhungHienThi();
+    if(b===1){ $('tbCam').className='thong-bao xanh'; $('tbCam').innerHTML='🎭 Đang trình diễn bằng <b>bàn tay giả</b> (chế độ không camera). Ở lớp, cô bấm <b>📷 Bật camera</b> để dùng camera thật.'; }
+    if(b===2){ dangDay='re'; veLuoiNhan(); noi('Giữ nút để Tin Nhí học cử chỉ của em!',''); }
+    if(b===3){ TSO.k=7; datTruot.k(7); TSO.soMau=30; datTruot.soMau(30);
+      RB={x:2,y:1,huong:1}; lenhDa=['di','di','re','di','di','dung','re','di']; RB={x:2,y:1,huong:1};
+      lenhDa=['di','di','re','di','di']; veSan();
+      hienPhieu({nhan:'di', doTin:6/7, phieu:{dung:1,di:6,re:0,khong:0}, k:7}, true);
+      }
+    if(b===4){
+      var bang={dung:{dung:9,di:0,re:1,khong:0}, di:{dung:0,di:10,re:0,khong:0}, re:{dung:1,di:2,re:7,khong:0}, khong:{dung:0,di:0,re:0,khong:10}};
+      nham=bang; veNham();
+      var t0=Date.now()-3600e3;
+      LUOT_MAU=[{t:t0,k:5,soMau:10,nguong:60,lienTiep:3,soLanThu:40,tiLe:62},{t:t0+900e3,k:5,soMau:25,nguong:60,lienTiep:3,soLanThu:40,tiLe:80},{t:t0+1800e3,k:7,soMau:40,nguong:60,lienTiep:3,soLanThu:40,tiLe:91}];
+      veLuot(); noi('Thêm mẫu: máy đúng từ 62% lên 91%!','dung'); }
+  }
+  function layKhungHienThi(){ var x=layKhung0(); var img=actx.createImageData(32,24); for(var i=0;i<768;i++){ var v=Math.max(0,Math.min(255,128+x[i]*50)); img.data[i*4]=img.data[i*4+1]=img.data[i*4+2]=v; img.data[i*4+3]=255; } actx.putImageData(img,0,0); }
+
+  /* ===== khởi động ===== */
+  document.addEventListener('DOMContentLoaded', function(){
+    $('logoHinh').innerHTML=robotSVG(34); $('tinNhiHinh').innerHTML=robotSVG(78);
+    Array.prototype.forEach.call(document.querySelectorAll('.buoc-the'), function(el){ el.onclick=function(){ am('bam'); datHash(+el.getAttribute('data-b')); }; });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-sang]'), function(el){ el.onclick=function(){ am('bam'); datHash(+el.getAttribute('data-sang')); }; });
+    $('nutBatCam').onclick=batCam; $('nutTatCam').onclick=tatCam;
+    $('nutGiaLap').onclick=function(){ tatCam(); khongCam('Đang dùng chế độ không camera.'); };
+    $('nutXoaMau').onclick=function(){ NHAN.forEach(function(n){ mau[n.id]=[]; anhMau[n.id]=[]; }); veLuoiNhan(); am('bam'); noi('Đã xoá hết mẫu. Máy «quên» sạch rồi — em dạy lại nhé!','goi-y'); };
+    $('nutLaiDuong').onclick=function(){ laiDuong(); am('bam'); };
+    $('nutLuuLuot').onclick=luuLuot; $('nutXoaThu').onclick=function(){ xoaThu(); am('bam'); };
+    $('nutXuat').onclick=xuatCSV;
+    dungNutGia(); dungTruot(); dungPhieu(); dungSan(); xoaThu(); dungNutThu(); veLuoiNhan(); veManCho(); datTrangThaiCam();
+    var b=Math.max(1,Math.min(4,+TS.buoc||1));
+    denBuoc(b);
+    if(CHUP || MAU){ dungChup(b); }
+    if(!CHUP) requestAnimationFrame(vong);
+    setTimeout(veSan, 50);
+  });
+})();
+</script>
+</body>
+</html>
